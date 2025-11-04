@@ -13,27 +13,41 @@ export default function LoanList({ loans }: { loans: Loan[] }) {
     router.push(`/loan/${id}`);
   };
 
+  if (!loans?.length) {
+    return (
+      <p className="text-center text-muted-foreground py-8">No loans found.</p>
+    );
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {loans.map((loan) => (
         <Card
           key={loan.id}
-          className="cursor-pointer transition-all hover:shadow-md hover:bg-accent/5"
           onClick={() => handleLoanClick(loan.id)}
+          className="cursor-pointer transition-all hover:shadow-lg hover:-translate-y-[1px] hover:border-primary/30"
         >
-          <CardContent className="flex justify-between items-center py-4">
-            <div>
-              <h3 className="font-semibold">{loan.title}</h3>
+          <CardContent className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-4">
+            <div className="flex-1">
+              <h3 className="font-semibold text-base sm:text-lg">
+                {loan.title}
+              </h3>
               <p className="text-sm text-muted-foreground">{loan.bank}</p>
             </div>
-            <div className="text-right">
-              <p className="font-medium">₹{loan.amount.toLocaleString()}</p>
-              <p className="text-sm">Paid: ₹{loan.paid.toLocaleString()}</p>
-              <p className="text-sm text-red-600">
-                Due: {new Date(loan.dueDate).toLocaleDateString()}
+
+            <div className="flex flex-col text-right">
+              <p className="font-semibold text-primary">
+                ₹{loan.amount.toLocaleString()}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Paid: ₹{loan.paid.toLocaleString()}
+              </p>
+              <p className="text-sm text-destructive font-medium">
+                Due: {new Date(loan.dueDate).toLocaleDateString("en-GB")}
               </p>
             </div>
-            <ArrowRight className="ml-4 h-5 w-5 text-muted-foreground" />
+
+            <ArrowRight className="h-5 w-5 text-muted-foreground shrink-0 sm:ml-3" />
           </CardContent>
         </Card>
       ))}

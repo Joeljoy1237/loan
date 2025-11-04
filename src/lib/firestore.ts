@@ -4,6 +4,13 @@ import admin from "firebase-admin";
 import type { Loan } from "../types/loan";
 import type { DocumentData } from "firebase-admin/firestore";
 
+export type TransactionInput = {
+    isReverse?: boolean;
+    amount: number | string;
+    date: string;
+    note?: string | null;
+};
+
 // Initialize Firebase Admin
 if (!admin.apps.length) {
     const {
@@ -16,23 +23,23 @@ if (!admin.apps.length) {
         throw new Error("Missing Firebase Admin environment variables");
     }
 
-    let privateKey;
-    try {
-        privateKey = JSON.parse(FIREBASE_PRIVATE_KEY);
-    } catch (error: unknown) {
-        throw new Error(error instanceof Error ? error.message : "FIREBASE_PRIVATE_KEY must be a valid JSON string");
-    }
+    // let privateKey;
+    // try {
+    //     privateKey = JSON.parse(FIREBASE_PRIVATE_KEY);
+    // } catch (error: unknown) {
+    //     throw new Error(error instanceof Error ? error.message : "FIREBASE_PRIVATE_KEY must be a valid JSON string");
+    // }
 
     admin.initializeApp({
         credential: admin.credential.cert({
             projectId: FIREBASE_PROJECT_ID,
             clientEmail: FIREBASE_CLIENT_EMAIL,
-            privateKey,
+            privateKey: FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
         }),
     });
 }
 
-const db = getFirestore();
+export const db = getFirestore();
 
 // Helper: Convert unknown Firestore doc to typed Loan
 function parseLoan(doc: FirebaseFirestore.QueryDocumentSnapshot<DocumentData>): Loan | null {
@@ -104,6 +111,7 @@ export async function getLoanById(id: string): Promise<Loan | null> {
   return {
     id: doc.id,
     userId: data.userId,
+    customId: data.customId || "",
     amount: Number(data.amount),
     paid: Number(data.paid),
     title: data.title,
@@ -129,7 +137,7 @@ export async function getLoanTransactions(loanId: string) {
         .collection("loans")
         .doc(loanId)
         .collection("transactions")
-        .orderBy("date", "desc")
+        .orderBy("createdAt", "desc")
         .get();
 
     return snapshot.docs.map((doc) => {
@@ -138,24 +146,81 @@ export async function getLoanTransactions(loanId: string) {
             id: doc.id,
             amount: Number(data.amount) || 0,
             date: data.date as string,
+            time: data.createdAt?.toDate() || new Date(),
             note: data.note as string | undefined,
         };
     })
 };
 
 export async function addTransaction(loanId: string, data: TransactionInput) {
-  const txRef = db.collection("loans").doc(loanId).collection("transactions").doc();
+    const txRef = db.collection("loans").doc(loanId).collection("transactions").doc();
+    const isReverse = data.isReverse || false;
+    await txRef.set({
+        ...data,
+        amount: Number(isReverse ? -data.amount : data.amount),
+        date: data.date,
+        note: data.note?.trim() || null,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
 
-  await txRef.set({
-    ...data,
-    amount: Number(data.amount),
-    date: data.date,
-    note: data.note?.trim() || null,
-    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-  });
+
 
   // Optional: Update loan.paid
-  await db.collection("loans").doc(loanId).update({
-    paid: admin.firestore.FieldValue.increment(data.amount),
-  });
+    await db.collection("loans").doc(loanId).update({
+        amount: admin.firestore.FieldValue.increment(isReverse ? Number(data.amount) : 0),
+        paid: admin.firestore.FieldValue.increment(isReverse ? 0 : Number(data.amount)),
+    });
 }
+
+
+export async function deleteOneTransaction(loanId: string, transactionId: string) {
+    const loanRef = db.collection("loans").doc(loanId);
+    const txRef = loanRef.collection("transactions").doc(transactionId);
+
+    try {
+        const txSnap = await txRef.get();
+
+        if (!txSnap.exists) {
+            throw new Error("Transaction not found");
+        }
+
+        const txData = txSnap.data();
+
+        if (txData?.amount > 0) {
+            // Update loan balance (assuming you have a `balance` field in loan doc)
+            await loanRef.update({
+                paid: admin.firestore.FieldValue.increment(-txData?.amount),
+            });
+        } else {
+            await loanRef.update({
+                amount: admin.firestore.FieldValue.increment(txData?.amount),
+            });
+        }
+        // Delete the transaction document
+        await txRef.delete();
+
+        console.log(`Transaction ${transactionId} deleted and reversed successfully.`);
+        return { success: true };
+    } catch (error) {
+        console.error("Error deleting transaction:", error);
+        return { success: false, error };
+    }
+}
+
+
+export async function fetchAllLoans() {
+    const snapshot = await db.collection('loans').get();
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            title: data.title,
+            userEmail: data.userEmail || 'unknown@example.com',
+            amount: data.amount,
+            paid: data.paid || 0,
+            remaining: data.amount - (data.paid || 0),
+            dueDate: data.dueDate,
+        };
+    });
+}
+

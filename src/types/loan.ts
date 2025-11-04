@@ -1,6 +1,7 @@
 // types/loan.ts
 export type Loan = {
     id: string;
+    customId?: string;
     userId: string;
     amount: number;
     paid: number;

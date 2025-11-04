@@ -51,10 +51,8 @@ export default function LoginForm() {
     setError("");
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      const credential = GoogleAuthProvider.credentialFromResult(result);
-      if (!credential?.idToken) throw new Error("No ID token from Google");
-
-      await handleSession(credential.idToken);
+      const idToken = await result.user.getIdToken();
+      await handleSession(idToken);
       router.push("/");
       router.refresh(); // ← Force revalidation
     } catch (err: unknown) {
