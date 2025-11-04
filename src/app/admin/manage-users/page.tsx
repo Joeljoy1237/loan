@@ -4,6 +4,9 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
+const dynamic = "force-dynamic";
+
+
 async function getAllUsers() {
   const users = [];
   let nextPageToken;
