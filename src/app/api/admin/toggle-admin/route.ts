@@ -7,13 +7,13 @@ export async function POST(req: NextRequest) {
         const formData = await req.formData();
         const uid = formData.get("uid") as string;
         const makeAdmin = formData.get("makeAdmin") === "true";
-
         if (!uid) {
             return NextResponse.json({ error: "Missing UID" }, { status: 400 });
         }
 
+        const redirectUrl = new URL("/admin/manage-users", req.url);
         await adminAuth.setCustomUserClaims(uid, { admin: makeAdmin });
-        return NextResponse.redirect("/admin/users");
+        return NextResponse.redirect(redirectUrl);
     } catch (error) {
         console.error("Admin update failed:", error);
         return NextResponse.json({ error: "Failed to update user role" }, { status: 500 });

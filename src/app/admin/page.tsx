@@ -38,27 +38,27 @@ export default async function AdminHomePage() {
   return (
     <div className="container mx-auto p-6 max-w-7xl">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-3">
         <div>
           <h1 className="text-4xl font-bold">Admin Dashboard</h1>
           <p className="text-muted-foreground mt-2">
             Manage all loans and payments
           </p>
         </div>
-        <div className="flex items-center space-x-4">
-          <Link href="/admin/manage-users">
-            <Button size="lg" className="shadow-lg">
-              <User className="mr-2 h-5 w-5" />
-              Manage User
-            </Button>
-          </Link>
-          <Link href="/admin/new-loan">
-            <Button size="lg" className="shadow-lg">
-              <Plus className="mr-2 h-5 w-5" />
-              Add New Loan
-            </Button>
-          </Link>
-        </div>
+      </div>
+      <div className="flex items-center justify-center lg:justify-end space-x-4 mb-8">
+        <Link href="/admin/manage-users">
+          <Button size="lg" className="shadow-lg">
+            <User className="mr-2 h-5 w-5" />
+            Manage User
+          </Button>
+        </Link>
+        <Link href="/admin/new-loan">
+          <Button size="lg" className="shadow-lg">
+            <Plus className="mr-2 h-5 w-5" />
+            Add New Loan
+          </Button>
+        </Link>
       </div>
 
       {/* 👇 Client-side loan list with search */}

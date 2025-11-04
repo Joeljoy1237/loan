@@ -64,3 +64,20 @@ export async function getCurrentUser(): Promise<DecodedIdToken | null> {
     return null;
   }
 }
+
+export async function getAllUsers() {
+  const users = [];
+  let nextPageToken;
+
+  do {
+    const result = await adminAuth.listUsers(1000, nextPageToken);
+    users.push(...result.users);
+    nextPageToken = result.pageToken;
+  } while (nextPageToken);
+
+  return users.map((user) => ({
+    uid: user.uid,
+    email: user.email,
+    isAdmin: user.customClaims?.admin || false,
+  }));
+}
