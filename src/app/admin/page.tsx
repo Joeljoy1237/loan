@@ -3,6 +3,8 @@ import { AdminLoanList } from "@/components/loanDetails/loan-list"; // 👈 new 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Plus, User } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +18,30 @@ type LoanWithEmail = {
   remaining: number;
   dueDate: string;
 };
+
+function LoanListSkeleton() {
+  return (
+    <div className="space-y-4 mt-6">
+      {[...Array(5)].map((_, i) => (
+        <div
+          key={i}
+          className="border rounded-lg p-4 shadow-sm bg-card space-y-3"
+        >
+          <div className="flex justify-between">
+            <Skeleton className="h-5 w-1/3" />
+            <Skeleton className="h-5 w-20" />
+          </div>
+          <Skeleton className="h-4 w-1/4" />
+          <div className="flex justify-between">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 
 export default async function AdminHomePage() {
   // Fetch once from Firestore
@@ -62,7 +88,9 @@ export default async function AdminHomePage() {
       </div>
 
       {/* 👇 Client-side loan list with search */}
-      <AdminLoanList isAdmin={true} loans={allLoans} />
+      <Suspense fallback={<LoanListSkeleton />}>
+        <AdminLoanList isAdmin={true} loans={allLoans} />
+      </Suspense>
     </div>
   );
 }

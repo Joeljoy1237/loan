@@ -48,7 +48,7 @@ export default async function UserList({
                 <form
                   action={`/api/admin/toggle-admin`}
                   method="POST"
-                  className="flex-shrink-0"
+                  className="shrink-0"
                 >
                   <input type="hidden" name="uid" value={user.uid} />
                   <input

@@ -25,7 +25,7 @@ export default function LoanList({ loans }: { loans: Loan[] }) {
         <Card
           key={loan.id}
           onClick={() => handleLoanClick(loan.id)}
-          className="cursor-pointer transition-all hover:shadow-lg hover:-translate-y-[1px] hover:border-primary/30"
+          className="cursor-pointer transition-all hover:shadow-lg hover:-translate-y-px hover:border-primary/30"
         >
           <CardContent className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-4">
             <div className="flex-1">

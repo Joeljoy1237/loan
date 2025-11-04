@@ -1,13 +1,12 @@
-// components/LoginForm.tsx
 "use client";
 
 import { useState } from "react";
-import { auth, googleProvider } from "@/lib/firebase"; // ← Client-only
+import { motion, AnimatePresence } from "framer-motion";
+import { auth, googleProvider } from "@/lib/firebase";
 import {
   signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  GoogleAuthProvider,
 } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -54,11 +53,11 @@ export default function LoginForm() {
       const idToken = await result.user.getIdToken();
       await handleSession(idToken);
       router.push("/");
-      router.refresh(); // ← Force revalidation
+      router.refresh();
     } catch (err: unknown) {
-      console.error("Google sign-in error:", err);
       setError(
-        (err as { code?: string; message?: string }).code === "auth/popup-closed-by-user"
+        (err as { code?: string; message?: string }).code ===
+          "auth/popup-closed-by-user"
           ? "Sign-in cancelled"
           : (err as { message?: string }).message || "Google sign-in failed"
       );
@@ -85,16 +84,21 @@ export default function LoginForm() {
       router.refresh();
     } catch (err: unknown) {
       console.error("Email auth error:", err);
-      const code = (err && (err as { code?: string }).code) as string | undefined;
+      const code = (err && (err as { code?: string }).code) as
+        | string
+        | undefined;
       const messages: Record<string, string> = {
         "auth/email-already-in-use": "This email is already registered",
         "auth/invalid-email": "Invalid email address",
+        "auth/invalid-credential": "Invalid credentials provided",
         "auth/weak-password": "Password should be at least 6 characters",
         "auth/user-not-found": "No account with this email",
         "auth/wrong-password": "Incorrect password",
       };
-      const msg = code ? messages[code] || (err as { message?: string }).message : "Authentication failed";
-      setError(msg ?? "Authentication failed");
+      const msg = code
+        ? messages[code] || (err as { message?: string }).message
+        : "Authentication failed";
+      setError(msg || "Authentication failed");
     } finally {
       setLoading(false);
     }
@@ -102,21 +106,33 @@ export default function LoginForm() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 to-indigo-100 p-4">
-      <Card className="w-full max-w-md shadow-xl">
+      <Card className="w-full max-w-md shadow-xl overflow-hidden">
         <CardHeader className="space-y-1 text-center">
           <div className="flex justify-center mb-4">
             <div className="p-3 bg-blue-600 rounded-full">
               <Lock className="w-6 h-6 text-white" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">
-            {isSignUp ? "Create Account" : "Welcome Back"}
-          </CardTitle>
-          <CardDescription>
-            {isSignUp
-              ? "Sign up to track your loans"
-              : "Log in to view your loan dashboard"}
-          </CardDescription>
+
+          {/* AnimatePresence switches between Login/Signup titles */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={isSignUp ? "signup" : "login"}
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.25 }}
+            >
+              <CardTitle className="text-2xl font-bold mb-1">
+                {isSignUp ? "Create Account" : "Welcome Back"}
+              </CardTitle>
+              <CardDescription>
+                {isSignUp
+                  ? "Sign up to track your loans"
+                  : "Log in to view your loan dashboard"}
+              </CardDescription>
+            </motion.div>
+          </AnimatePresence>
         </CardHeader>
 
         <CardContent className="space-y-4">
@@ -127,63 +143,76 @@ export default function LoginForm() {
             </Alert>
           )}
 
-          <form onSubmit={handleEmailAuth} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="pl-10"
-                  disabled={loading}
-                  autoComplete="email"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder={
-                    isSignUp ? "Choose a strong password" : "••••••••"
-                  }
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  className="pl-10"
-                  disabled={loading}
-                  autoComplete={isSignUp ? "new-password" : "current-password"}
-                />
-              </div>
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={loading || !email || !password}
+          {/* Animate form change */}
+          <AnimatePresence mode="wait">
+            <motion.form
+              key={isSignUp ? "signup-form" : "login-form"}
+              onSubmit={handleEmailAuth}
+              className="space-y-4"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.25 }}
             >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {isSignUp ? "Creating Account..." : "Logging in..."}
-                </>
-              ) : isSignUp ? (
-                "Sign Up"
-              ) : (
-                "Log In"
-              )}
-            </Button>
-          </form>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="pl-10"
+                    disabled={loading}
+                    autoComplete="email"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder={
+                      isSignUp ? "Choose a strong password" : "••••••••"
+                    }
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    className="pl-10"
+                    disabled={loading}
+                    autoComplete={
+                      isSignUp ? "new-password" : "current-password"
+                    }
+                  />
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading || !email || !password}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {isSignUp ? "Creating Account..." : "Logging in..."}
+                  </>
+                ) : isSignUp ? (
+                  "Sign Up"
+                ) : (
+                  "Log In"
+                )}
+              </Button>
+            </motion.form>
+          </AnimatePresence>
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">

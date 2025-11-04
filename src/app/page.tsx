@@ -1,4 +1,3 @@
-// app/my/page.tsx
 import { adminAuth } from "@/lib/firebaseAdmin";
 import { getLoanSummary, getUserLoans } from "@/lib/firestore";
 import LoanSummaryCard from "@/components/LoanSummaryCard";
@@ -7,13 +6,44 @@ import AuthGuard from "@/components/AuthGuard";
 import { getSession } from "@/lib/cookies";
 import type { Loan } from "@/types/loan";
 import LogoutButton from "@/components/LogoutButton";
+import { Suspense } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const dynamic = "force-dynamic";
+
+function SummarySkeleton() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      {[...Array(3)].map((_, i) => (
+        <Skeleton key={i} className="h-24 w-full rounded-lg" />
+      ))}
+    </div>
+  );
+}
+
+function LoanListSkeleton() {
+  return (
+    <div className="space-y-4">
+      {[...Array(3)].map((_, i) => (
+        <div
+          key={i}
+          className="p-4 border rounded-lg shadow-sm bg-card space-y-2"
+        >
+          <Skeleton className="h-5 w-1/3" />
+          <Skeleton className="h-4 w-1/2" />
+          <div className="flex justify-between">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default async function Dashboard() {
   const session = await getSession();
 
-  // If no session, skip data fetching but don't redirect
   if (!session) {
     return (
       <AuthGuard>
@@ -25,7 +55,6 @@ export default async function Dashboard() {
     );
   }
 
-  // Verify session cookie
   let uid: string | null = null;
   try {
     const decoded = await adminAuth.verifySessionCookie(session);
@@ -34,7 +63,6 @@ export default async function Dashboard() {
     console.error("Session verification failed:", error);
   }
 
-  // If verification fails
   if (!uid) {
     return (
       <AuthGuard>
@@ -46,7 +74,6 @@ export default async function Dashboard() {
     );
   }
 
-  // Fetch user-specific loan data
   const [summary, rawLoans] = await Promise.all([
     getLoanSummary(uid),
     getUserLoans(uid),
@@ -63,17 +90,23 @@ export default async function Dashboard() {
   }));
 
   return (
-  <AuthGuard>
-    <div className="container mx-auto p-6 max-w-5xl">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">My Loans</h1>
-        <LogoutButton />
-      </div>
+    <AuthGuard>
+      <div className="container mx-auto p-6 max-w-5xl">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">My Loans</h1>
+          <LogoutButton />
+        </div>
 
-      <LoanSummaryCard summary={summary} />
-      <h2 className="text-xl font-semibold mb-4">Loan Details</h2>
-      <LoanList loans={loans} />
-    </div>
-  </AuthGuard>
-);
+        <Suspense fallback={<SummarySkeleton />}>
+          <LoanSummaryCard summary={summary} />
+        </Suspense>
+
+        <h2 className="text-xl font-semibold mb-4">Loan Details</h2>
+
+        <Suspense fallback={<LoanListSkeleton />}>
+          <LoanList loans={loans} />
+        </Suspense>
+      </div>
+    </AuthGuard>
+  );
 }
