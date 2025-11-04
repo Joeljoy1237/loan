@@ -1,5 +1,4 @@
-// app/admin/loan/[id]/page.tsx
-
+import { Suspense } from "react";
 import {
   getLoanById,
   getLoanTransactions,
@@ -16,18 +15,14 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { FileText, Plus } from "lucide-react";
 import { revalidatePath } from "next/cache";
-import { Suspense } from "react";
 
 import { AdminLoanHeader } from "@/components/admin/AdminLoanHeader";
 import { AddPaymentForm } from "@/components/admin/AddPaymentForm";
 import { LoanSummaryCard } from "@/components/loanDetails/LoanSummaryCard";
 import { PaymentProgress } from "@/components/loanDetails/PaymentProgress";
 import { TransactionList } from "@/components/loanDetails/TransactionList";
-import {
-  LoanSummarySkeleton,
-  TransactionListSkeleton,
-} from "@/components/loanDetails/LoadingSkeleton";
-
+import { LoanSummarySkeleton } from "@/components/loanDetails/LoanSummarySkeleton";
+import { TransactionListSkeleton } from "@/components/loanDetails/TransactionListSkeleton";
 interface FormState {
   isError?: boolean;
   error?: string;
@@ -35,6 +30,7 @@ interface FormState {
   message?: string;
 }
 
+// 🔹 Server action for adding a transaction
 async function createTransaction(
   prevState: FormState,
   formData: FormData,
@@ -69,6 +65,7 @@ const revalidate = async (path: string) => {
   revalidatePath(path);
 };
 
+// 🔹 Page
 export default async function AdminLoanPage({
   params,
 }: {
@@ -76,26 +73,22 @@ export default async function AdminLoanPage({
 }) {
   const { id } = await params;
 
-  const [loan, transactions] = await Promise.all([
-    getLoanById(id),
-    getLoanTransactions(id),
-  ]);
-
-  if (!loan) notFound();
+  // Instead of awaiting immediately, build promises
+  const loanPromise = getLoanById(id);
+  const transactionsPromise = getLoanTransactions(id);
 
   return (
     <div className="container mx-auto p-6 pb-12 space-y-8 max-w-5xl">
       <AdminLoanHeader />
 
+      {/* 🔸 Loan Summary Section */}
       <Suspense fallback={<LoanSummarySkeleton />}>
-        <LoanSummaryCard loan={loan} />
-        <div className="mt-6">
-          <PaymentProgress paid={loan.paid} total={loan.amount} />
-        </div>
+        <LoanSummarySection promise={loanPromise} />
       </Suspense>
 
       <Separator className="my-8" />
 
+      {/* 🔸 Add Payment Form */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -113,6 +106,7 @@ export default async function AdminLoanPage({
 
       <Separator className="my-8" />
 
+      {/* 🔸 Transaction History Section */}
       <section className="space-y-5">
         <h2 className="text-2xl font-bold flex items-center gap-2">
           <FileText className="h-6 w-6 text-primary" />
@@ -120,14 +114,54 @@ export default async function AdminLoanPage({
         </h2>
 
         <Suspense fallback={<TransactionListSkeleton />}>
-          <TransactionList
-            revalidate={revalidate}
+          <TransactionSection
+            promise={transactionsPromise}
             loanId={id}
-            transactions={transactions}
-            isAdmin={true}
+            revalidate={revalidate}
           />
         </Suspense>
       </section>
     </div>
+  );
+}
+
+// 🔹 Async section for loan summary
+async function LoanSummarySection({
+  promise,
+}: {
+  promise: ReturnType<typeof getLoanById>;
+}) {
+  const loan = await promise;
+
+  if (!loan) notFound();
+
+  return (
+    <>
+      <LoanSummaryCard loan={loan} />
+      <div className="mt-6">
+        <PaymentProgress paid={loan.paid} total={loan.amount} />
+      </div>
+    </>
+  );
+}
+
+// 🔹 Async section for transaction list
+async function TransactionSection({
+  promise,
+  loanId,
+  revalidate,
+}: {
+  promise: ReturnType<typeof getLoanTransactions>;
+  loanId: string;
+  revalidate: (path: string) => Promise<void>;
+}) {
+  const transactions = await promise;
+  return (
+    <TransactionList
+      revalidate={revalidate}
+      loanId={loanId}
+      transactions={transactions}
+      isAdmin={true}
+    />
   );
 }

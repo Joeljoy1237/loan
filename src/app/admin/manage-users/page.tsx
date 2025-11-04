@@ -5,20 +5,32 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export const dynamic = "force-dynamic";
 
-export default async function ManageUsersPage() {
+export default function ManageUsersPage() {
+  // create the promise once
   const usersPromise = getAllUsers();
 
   return (
     <div className="container mx-auto p-6 max-w-5xl">
       <h1 className="text-3xl font-bold mb-6">Manage Users</h1>
 
+      {/* Suspense boundary to wait for user data */}
       <Suspense fallback={<UserListSkeleton />}>
-        <UserList usersPromise={usersPromise} />
+        <UserListAwait promise={usersPromise} />
       </Suspense>
     </div>
   );
 }
 
+// ✅ component that forwards the promise to UserList
+function UserListAwait({
+  promise,
+}: {
+  promise: ReturnType<typeof getAllUsers>;
+}) {
+  return <UserList usersPromise={promise} />;
+}
+
+// 🔹 Skeleton loader
 function UserListSkeleton() {
   return (
     <div className="space-y-4">

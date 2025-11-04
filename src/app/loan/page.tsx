@@ -1,7 +1,7 @@
 import { db } from "@/lib/firestore";
-import { AdminLoanList } from "@/components/loanDetails/loan-list"; // 👈 new client component
+import { AdminLoanList } from "@/components/loanDetails/loan-list";
 import { Suspense } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { LoanListSkeleton } from "@/components/LoanListSkelton";
 
 export const dynamic = "force-dynamic";
 
@@ -16,34 +16,11 @@ type LoanWithEmail = {
   dueDate: string;
 };
 
-function LoanListSkeleton() {
-  return (
-    <div className="space-y-4 mt-6">
-      {[...Array(5)].map((_, i) => (
-        <div
-          key={i}
-          className="border rounded-lg p-4 shadow-sm bg-card space-y-3"
-        >
-          <div className="flex justify-between">
-            <Skeleton className="h-5 w-1/3" />
-            <Skeleton className="h-5 w-20" />
-          </div>
-          <Skeleton className="h-4 w-1/4" />
-          <div className="flex justify-between">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-4 w-16" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
-export default async function page() {
-  // Fetch once from Firestore
+// 🔹 Wrap the Firestore fetch in a promise for Suspense
+async function fetchLoans(): Promise<LoanWithEmail[]> {
   const snapshot = await db.collection("loans").get();
-
-  const allLoans: LoanWithEmail[] = snapshot.docs.map((doc) => {
+  return snapshot.docs.map((doc) => {
     const data = doc.data();
     return {
       id: doc.id,
@@ -56,7 +33,15 @@ export default async function page() {
       dueDate: data.dueDate || "1970-01-01",
     };
   });
+}
 
+// 🔹 Separate async component for Suspense
+async function LoanListLoader() {
+  const allLoans = await fetchLoans();
+  return <AdminLoanList isAdmin={false} loans={allLoans} />;
+}
+
+export default function Page() {
   return (
     <div className="container mx-auto p-6 max-w-7xl">
       {/* Header */}
@@ -69,9 +54,10 @@ export default async function page() {
         </div>
       </div>
 
-      {/* 👇 Client-side loan list with search */}
+      {/* 👇 Suspense with async data promise */}
       <Suspense fallback={<LoanListSkeleton />}>
-        <AdminLoanList isAdmin={false} loans={allLoans} />
+        {/* Suspense handles the async fetch */}
+        <LoanListLoader />
       </Suspense>
     </div>
   );

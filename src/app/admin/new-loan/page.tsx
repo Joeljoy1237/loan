@@ -1,4 +1,4 @@
-// app/admin/new-loan/page.tsx
+import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,8 +14,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/firestore";
 import { getAuth } from "firebase-admin/auth";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// Server Action: Create Loan
+export const dynamic = "force-dynamic";
+
+// 🔹 Server Action: Create Loan
 async function createLoan(formData: FormData): Promise<void> {
   "use server";
 
@@ -54,7 +57,7 @@ async function createLoan(formData: FormData): Promise<void> {
       paid: 0,
       bank,
       dueDate,
-      customId, // ← New field saved
+      customId,
       createdAt: new Date().toISOString(),
     });
 
@@ -65,18 +68,16 @@ async function createLoan(formData: FormData): Promise<void> {
         (error as Error).message || "Failed to create loan. User may not exist."
       )}&email=${encodeURIComponent(userEmail || "")}`
     );
-    return;
   }
 }
 
-export default async function NewLoanPage({
+// 🔹 Page Component
+export default function NewLoanPage({
   searchParams,
 }: {
   searchParams: { error?: string; email?: string };
-  }) {
-  const params = await searchParams;
-  const error = params.error;
-  const email = params.email;
+}) {
+  const paramsPromise = Promise.resolve(searchParams); // turn into promise
 
   return (
     <div className="container mx-auto p-6 max-w-3xl">
@@ -89,6 +90,26 @@ export default async function NewLoanPage({
         <h1 className="text-3xl font-bold">Create New Loan</h1>
       </div>
 
+      {/* Suspense boundary */}
+      <Suspense fallback={<NewLoanSkeleton />}>
+        <NewLoanForm promise={paramsPromise} />
+      </Suspense>
+    </div>
+  );
+}
+
+// 🔹 Async wrapper that reads the promise
+async function NewLoanForm({
+  promise,
+}: {
+  promise: Promise<{ error?: string; email?: string }>;
+}) {
+  const params = await promise;
+  const error = params.error;
+  const email = params.email;
+
+  return (
+    <>
       {error && (
         <Card className="mb-6 border-red-500">
           <CardContent className="pt-6 text-red-600">
@@ -214,6 +235,22 @@ export default async function NewLoanPage({
           </form>
         </CardContent>
       </Card>
+    </>
+  );
+}
+
+// 🔹 Simple skeleton loader
+function NewLoanSkeleton() {
+  return (
+    <div className="space-y-6">
+      <Skeleton className="h-8 w-1/3" />
+      {Array.from({ length: 6 }).map((_, i) => (
+        <Skeleton key={i} className="h-12 w-full" />
+      ))}
+      <div className="flex gap-3 pt-4">
+        <Skeleton className="h-10 w-32" />
+        <Skeleton className="h-10 w-32" />
+      </div>
     </div>
   );
 }

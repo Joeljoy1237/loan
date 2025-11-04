@@ -7,38 +7,49 @@ import { getSession } from "@/lib/cookies";
 import type { Loan } from "@/types/loan";
 import LogoutButton from "@/components/LogoutButton";
 import { Suspense } from "react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { LoanListSkeleton } from "@/components/LoanListSkelton";
+import { SummarySkeleton } from "@/components/LoanSummaryCardSkelton";
 
 export const dynamic = "force-dynamic";
 
-function SummarySkeleton() {
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-      {[...Array(3)].map((_, i) => (
-        <Skeleton key={i} className="h-24 w-full rounded-lg" />
-      ))}
-    </div>
-  );
+
+type Summary = {
+  totalLoan: number;
+  totalPaid: number;
+  totalRemaining: number;
+  numberOfLoans: number;
+};
+
+
+// Component that resolves the summary promise
+async function LoanSummaryWrapper({
+  summaryPromise,
+}: {
+  summaryPromise: Promise<Summary>;
+}) {
+  const summary = await summaryPromise;
+  return <LoanSummaryCard summary={summary} />;
 }
 
-function LoanListSkeleton() {
-  return (
-    <div className="space-y-4">
-      {[...Array(3)].map((_, i) => (
-        <div
-          key={i}
-          className="p-4 border rounded-lg shadow-sm bg-card space-y-2"
-        >
-          <Skeleton className="h-5 w-1/3" />
-          <Skeleton className="h-4 w-1/2" />
-          <div className="flex justify-between">
-            <Skeleton className="h-4 w-20" />
-            <Skeleton className="h-4 w-16" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+// Component that resolves the loans promise
+async function LoanListWrapper({
+  loansPromise,
+}: {
+  loansPromise: Promise<Loan[]>;
+}) {
+  const rawLoans = await loansPromise;
+
+  const loans: Loan[] = rawLoans.map((loan) => ({
+    id: loan.id,
+    userId: loan.userId ?? "",
+    amount: Number(loan.amount) || 0,
+    paid: Number(loan.paid) || 0,
+    title: loan.title ?? "Untitled Loan",
+    bank: loan.bank ?? "Unknown Bank",
+    dueDate: loan.dueDate ?? new Date().toISOString().split("T")[0],
+  }));
+
+  return <LoanList loans={loans} />;
 }
 
 export default async function Dashboard() {
@@ -68,26 +79,15 @@ export default async function Dashboard() {
       <AuthGuard>
         <div className="container mx-auto p-6 max-w-5xl text-center text-muted-foreground">
           <h1 className="text-2xl font-semibold mb-4">My Loans</h1>
-          <p>Couldn’t verify your session. Please log in again.</p>
+          <p>Couldn&apos;t verify your session. Please log in again.</p>
         </div>
       </AuthGuard>
     );
   }
 
-  const [summary, rawLoans] = await Promise.all([
-    getLoanSummary(uid),
-    getUserLoans(uid),
-  ]);
-
-  const loans: Loan[] = rawLoans.map((loan) => ({
-    id: loan.id,
-    userId: loan.userId ?? uid,
-    amount: Number(loan.amount) || 0,
-    paid: Number(loan.paid) || 0,
-    title: loan.title ?? "Untitled Loan",
-    bank: loan.bank ?? "Unknown Bank",
-    dueDate: loan.dueDate ?? new Date().toISOString().split("T")[0],
-  }));
+  // Create promises for the data
+  const summaryPromise = getLoanSummary(uid);
+  const loansPromise = getUserLoans(uid);
 
   return (
     <AuthGuard>
@@ -98,13 +98,13 @@ export default async function Dashboard() {
         </div>
 
         <Suspense fallback={<SummarySkeleton />}>
-          <LoanSummaryCard summary={summary} />
+          <LoanSummaryWrapper summaryPromise={summaryPromise} />
         </Suspense>
 
         <h2 className="text-xl font-semibold mb-4">Loan Details</h2>
 
         <Suspense fallback={<LoanListSkeleton />}>
-          <LoanList loans={loans} />
+          <LoanListWrapper loansPromise={loansPromise} />
         </Suspense>
       </div>
     </AuthGuard>
