@@ -8,6 +8,7 @@ import { LoanListSkeleton } from "@/components/LoanListSkelton";
 
 export const dynamic = "force-dynamic";
 
+// 🔹 Type definition
 type LoanWithEmail = {
   id: string;
   title: string;
@@ -19,8 +20,7 @@ type LoanWithEmail = {
   dueDate: string;
 };
 
-
-// 🔹 Promise function to fetch loans
+// 🔹 Firestore fetch function
 async function getLoans(): Promise<LoanWithEmail[]> {
   const snapshot = await db.collection("loans").get();
 
@@ -39,10 +39,11 @@ async function getLoans(): Promise<LoanWithEmail[]> {
   });
 }
 
-// 🔹 Page
-export default function AdminHomePage() {
-  const loanPromise = getLoans(); // create promise here
+// 🟢 Run once at module level (per request)
+const loanPromise = getLoans();
 
+// 🔹 Page Component
+export default function AdminHomePage() {
   return (
     <div className="container mx-auto p-6 max-w-7xl">
       {/* Header */}
@@ -55,6 +56,7 @@ export default function AdminHomePage() {
         </div>
       </div>
 
+      {/* Action Buttons */}
       <div className="flex items-center justify-center lg:justify-end space-x-4 mb-8">
         <Link href="/admin/manage-users">
           <Button size="lg" className="shadow-lg">
@@ -70,7 +72,7 @@ export default function AdminHomePage() {
         </Link>
       </div>
 
-      {/* 👇 Suspense with promise */}
+      {/* Suspense Boundary */}
       <Suspense fallback={<LoanListSkeleton />}>
         <LoanListAwait promise={loanPromise} />
       </Suspense>
@@ -78,7 +80,7 @@ export default function AdminHomePage() {
   );
 }
 
-// 🔹 Small async wrapper to await the promise
+// 🔹 Async section for Suspense
 async function LoanListAwait({
   promise,
 }: {

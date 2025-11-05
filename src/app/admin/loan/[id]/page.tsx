@@ -19,7 +19,6 @@ import { revalidatePath } from "next/cache";
 import { AdminLoanHeader } from "@/components/admin/AdminLoanHeader";
 import { AddPaymentForm } from "@/components/admin/AddPaymentForm";
 import { LoanSummaryCard } from "@/components/loanDetails/LoanSummaryCard";
-import { PaymentProgress } from "@/components/loanDetails/PaymentProgress";
 import { TransactionList } from "@/components/loanDetails/TransactionList";
 import { LoanSummarySkeleton } from "@/components/loanDetails/LoanSummarySkeleton";
 import { TransactionListSkeleton } from "@/components/loanDetails/TransactionListSkeleton";
@@ -138,9 +137,6 @@ async function LoanSummarySection({
   return (
     <>
       <LoanSummaryCard loan={loan} />
-      <div className="mt-6">
-        <PaymentProgress paid={loan.paid} total={loan.amount} />
-      </div>
     </>
   );
 }

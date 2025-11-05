@@ -1,4 +1,3 @@
-// app/loan/[id]/components/TransactionList.tsx
 "use client";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -65,15 +64,15 @@ export function TransactionList({
   if (transactions.length === 0) {
     return (
       <Card className="border-dashed bg-muted/10">
-        <CardContent className="py-16 text-center">
-          <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-muted/30">
-            <FileText className="h-10 w-10 text-muted-foreground" />
+        <CardContent className="py-12 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted/30">
+            <FileText className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-semibold text-foreground mb-1">
-            No payments recorded yet
+          <h3 className="text-base font-semibold text-foreground mb-1">
+            No payments yet
           </h3>
-          <p className="text-sm text-muted-foreground">
-            Start tracking payments to see history here.
+          <p className="text-xs text-muted-foreground">
+            Add a payment to see history here.
           </p>
         </CardContent>
       </Card>
@@ -82,68 +81,60 @@ export function TransactionList({
 
   return (
     <>
-      <div className="space-y-4">
-        {transactions.map((tx, index) => {
+      <div className="space-y-3">
+        {transactions.map((tx) => {
           const isNegative = tx.amount < 0;
           const absAmount = Math.abs(tx.amount);
 
           return (
             <Card
               key={tx.id}
-              className={`
-                overflow-hidden border
-                transition-all duration-200
-                hover:shadow-md hover:-translate-y-0.5
-                ${index === 0 ? "ring-2 ring-primary/20" : ""}
-              `}
+              className={`border bg-background/80 hover:bg-muted/30 transition-colors duration-150`}
             >
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between gap-4">
-                  {/* Left: Amount + Icon */}
-                  <div className="flex items-center gap-3 flex-1">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
+                  {/* Left: Amount & Note */}
+                  <div className="flex items-center gap-3 min-w-0">
                     <div
-                      className={`
-                        flex h-11 w-11 items-center justify-center rounded-full
+                      className={`flex h-9 w-9 items-center justify-center rounded-full flex-shrink-0
                         ${
                           isNegative
                             ? "bg-red-100 text-red-600"
                             : "bg-green-100 text-green-600"
-                        }
-                      `}
+                        }`}
                     >
                       {isNegative ? (
-                        <ArrowDown className="h-5 w-5" />
+                        <ArrowDown className="h-4 w-4" />
                       ) : (
-                        <ArrowUp className="h-5 w-5" />
+                        <ArrowUp className="h-4 w-4" />
                       )}
                     </div>
 
-                    <div className="space-y-0.5 flex-1">
+                    <div className="flex flex-col min-w-0">
                       <p
-                        className={`
-                          text-xl font-bold
-                          ${isNegative ? "text-red-600" : "text-green-600"}
-                        `}
+                        className={`text-base sm:text-lg font-semibold leading-tight ${
+                          isNegative ? "text-red-600" : "text-green-600"
+                        }`}
                       >
                         {isNegative ? "-" : ""}₹
                         {absAmount.toLocaleString("en-IN")}
                       </p>
                       {tx.note && (
-                        <p className="text-sm text-muted-foreground italic max-w-md truncate">
+                        <p className="text-xs text-muted-foreground truncate max-w-[200px] sm:max-w-xs">
                           “{tx.note}”
                         </p>
                       )}
                     </div>
                   </div>
 
-                  {/* Right: Date, Time, Delete */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex flex-col items-end gap-1 text-right">
-                      <div className="flex items-center gap-1.5 text-sm font-medium">
-                        <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                  {/* Right: Date/Time/Delete */}
+                  <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+                    <div className="flex flex-col items-start sm:items-end text-[11px] sm:text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1.5 font-medium">
+                        <Calendar className="h-3 w-3 text-muted-foreground" />
                         <span>{format(new Date(tx.date), "d MMM yyyy")}</span>
                       </div>
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-1.5">
                         <Clock className="h-3 w-3" />
                         <span>{format(new Date(tx.time), "h:mm a")}</span>
                       </div>
@@ -153,10 +144,8 @@ export function TransactionList({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                        onClick={() => {
-                          setDeleteId(tx.id);
-                        }}
+                        className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0"
+                        onClick={() => setDeleteId(tx.id)}
                         aria-label="Delete transaction"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -176,8 +165,8 @@ export function TransactionList({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Payment</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this transaction? This action
-              cannot be undone.
+              Are you sure you want to delete this transaction? This can’t be
+              undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

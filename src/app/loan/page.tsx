@@ -1,6 +1,6 @@
+import { Suspense } from "react";
 import { db } from "@/lib/firestore";
 import { AdminLoanList } from "@/components/loanDetails/loan-list";
-import { Suspense } from "react";
 import { LoanListSkeleton } from "@/components/LoanListSkelton";
 
 export const dynamic = "force-dynamic";
@@ -16,10 +16,10 @@ type LoanWithEmail = {
   dueDate: string;
 };
 
-
-// 🔹 Wrap the Firestore fetch in a promise for Suspense
+// 🔹 Async fetch function
 async function fetchLoans(): Promise<LoanWithEmail[]> {
   const snapshot = await db.collection("loans").get();
+
   return snapshot.docs.map((doc) => {
     const data = doc.data();
     return {
@@ -35,9 +35,9 @@ async function fetchLoans(): Promise<LoanWithEmail[]> {
   });
 }
 
-// 🔹 Separate async component for Suspense
+// ✅ This async component runs *inside* Suspense
 async function LoanListLoader() {
-  const allLoans = await fetchLoans();
+  const allLoans = await fetchLoans(); // Suspense handles the promise
   return <AdminLoanList isAdmin={false} loans={allLoans} />;
 }
 
@@ -54,9 +54,8 @@ export default function Page() {
         </div>
       </div>
 
-      {/* 👇 Suspense with async data promise */}
+      {/* 👇 Suspense now actually suspends */}
       <Suspense fallback={<LoanListSkeleton />}>
-        {/* Suspense handles the async fetch */}
         <LoanListLoader />
       </Suspense>
     </div>

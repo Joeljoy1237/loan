@@ -32,12 +32,12 @@ export default async function UserList({
                 <p className="font-medium text-sm sm:text-base truncate max-w-[250px]">
                   {user.email || "No Email"}
                 </p>
-                <p className="text-xs text-muted-foreground break-all">
+                <p className="text-xs text-muted-foreground break-all trancate">
                   {user.uid}
                 </p>
               </div>
 
-              <div className="flex items-center gap-3 flex-wrap justify-end">
+              <div className="flex items-center gap-3 flex-wrap justify-center lg:justify-end">
                 <Badge
                   variant={user.isAdmin ? "default" : "secondary"}
                   className="text-xs px-2 py-1 rounded-full"

@@ -1,18 +1,21 @@
+import { Suspense } from "react";
 import { adminAuth } from "@/lib/firebaseAdmin";
 import { getLoanSummary, getUserLoans } from "@/lib/firestore";
+import { getSession } from "@/lib/cookies";
+
+import AuthGuard from "@/components/AuthGuard";
 import LoanSummaryCard from "@/components/LoanSummaryCard";
 import LoanList from "@/components/LoanList";
-import AuthGuard from "@/components/AuthGuard";
-import { getSession } from "@/lib/cookies";
-import type { Loan } from "@/types/loan";
 import LogoutButton from "@/components/LogoutButton";
-import { Suspense } from "react";
-import { LoanListSkeleton } from "@/components/LoanListSkelton";
 import { SummarySkeleton } from "@/components/LoanSummaryCardSkelton";
+import { LoanListSkeleton } from "@/components/LoanListSkelton";
+
+import type { Loan } from "@/types/loan";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
-
+/* ----------------------------- Types ----------------------------- */
 type Summary = {
   totalLoan: number;
   totalPaid: number;
@@ -20,9 +23,15 @@ type Summary = {
   numberOfLoans: number;
 };
 
+/* ------------------------- Data Functions ------------------------ */
+/** Wraps data fetching in cache() for reuse during the render cycle */
+import { cache } from "react";
 
-// Component that resolves the summary promise
-async function LoanSummaryWrapper({
+const getUserSummary = cache(async (uid: string) => getLoanSummary(uid));
+const getUserLoanList = cache(async (uid: string) => getUserLoans(uid));
+
+/* --------------------- Async Suspense Wrappers -------------------- */
+async function LoanSummarySection({
   summaryPromise,
 }: {
   summaryPromise: Promise<Summary>;
@@ -31,15 +40,14 @@ async function LoanSummaryWrapper({
   return <LoanSummaryCard summary={summary} />;
 }
 
-// Component that resolves the loans promise
-async function LoanListWrapper({
+async function LoanListSection({
   loansPromise,
 }: {
   loansPromise: Promise<Loan[]>;
 }) {
   const rawLoans = await loansPromise;
 
-  const loans: Loan[] = rawLoans.map((loan) => ({
+  const loans = rawLoans.map((loan) => ({
     id: loan.id,
     userId: loan.userId ?? "",
     amount: Number(loan.amount) || 0,
@@ -52,16 +60,18 @@ async function LoanListWrapper({
   return <LoanList loans={loans} />;
 }
 
+/* --------------------------- Page Logic --------------------------- */
 export default async function Dashboard() {
   const session = await getSession();
 
+  // Handle no session early for fast rejection
   if (!session) {
     return (
       <AuthGuard>
-        <div className="container mx-auto p-6 max-w-5xl text-center text-muted-foreground">
-          <h1 className="text-2xl font-semibold mb-4">My Loans</h1>
-          <p>Please log in to view your loans.</p>
-        </div>
+        <EmptyState
+          title="My Loans"
+          message="Please log in to view your loans."
+        />
       </AuthGuard>
     );
   }
@@ -77,36 +87,52 @@ export default async function Dashboard() {
   if (!uid) {
     return (
       <AuthGuard>
-        <div className="container mx-auto p-6 max-w-5xl text-center text-muted-foreground">
-          <h1 className="text-2xl font-semibold mb-4">My Loans</h1>
-          <p>Couldn&apos;t verify your session. Please log in again.</p>
-        </div>
+        <EmptyState
+          title="My Loans"
+          message="Couldn’t verify your session. Please log in again."
+        />
       </AuthGuard>
     );
   }
 
-  // Create promises for the data
-  const summaryPromise = getLoanSummary(uid);
-  const loansPromise = getUserLoans(uid);
+  /* --------------------- Prefetch Data in Parallel -------------------- */
+  // Start both fetches as soon as possible
+  const summaryPromise = getUserSummary(uid);
+  const loansPromise = getUserLoanList(uid);
 
+  /* ----------------------------- Render ------------------------------ */
   return (
     <AuthGuard>
-      <div className="container mx-auto p-6 max-w-5xl">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">My Loans</h1>
+      <div className="container mx-auto p-6 max-w-5xl space-y-8">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold tracking-tight">My Loans</h1>
           <LogoutButton />
         </div>
 
+        {/* Loan Summary (suspense boundary 1) */}
         <Suspense fallback={<SummarySkeleton />}>
-          <LoanSummaryWrapper summaryPromise={summaryPromise} />
+          <LoanSummarySection summaryPromise={summaryPromise} />
         </Suspense>
 
-        <h2 className="text-xl font-semibold mb-4">Loan Details</h2>
-
-        <Suspense fallback={<LoanListSkeleton />}>
-          <LoanListWrapper loansPromise={loansPromise} />
-        </Suspense>
+        {/* Loan List (suspense boundary 2) */}
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Loan Details</h2>
+          <Suspense fallback={<LoanListSkeleton />}>
+            <LoanListSection loansPromise={loansPromise} />
+          </Suspense>
+        </div>
       </div>
     </AuthGuard>
+  );
+}
+
+/* ------------------------- Helper Component ------------------------- */
+function EmptyState({ title, message }: { title: string; message: string }) {
+  return (
+    <div className="container mx-auto p-6 max-w-5xl text-center text-muted-foreground">
+      <h1 className="text-2xl font-semibold mb-4">{title}</h1>
+      <p>{message}</p>
+    </div>
   );
 }

@@ -1,4 +1,3 @@
-// app/loan/[id]/components/LoanSummaryCard.tsx
 import {
   Card,
   CardContent,
@@ -18,28 +17,48 @@ interface LoanSummaryCardProps {
 export function LoanSummaryCard({ loan }: LoanSummaryCardProps) {
   const remaining = loan.amount - loan.paid;
   const isPaidOff = remaining <= 0;
+  const progress =
+    loan.amount > 0 ? Math.min((loan.paid / loan.amount) * 100, 100) : 0;
 
   return (
     <Card className="shadow-sm hover:shadow-md transition-shadow duration-200">
       <CardHeader className="pb-4">
-        <div className="flex justify-between items-start gap-4">
+        {/* ✅ Responsive top layout fix */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4">
+          {/* Left section */}
           <div className="space-y-1">
-            <CardTitle className="text-2xl md:text-3xl font-bold tracking-tight">
+            <CardTitle className="text-2xl md:text-3xl font-bold tracking-tight wrap-break-word">
               Loan ID: {loan.customId}
             </CardTitle>
-            <h2 className="font-semibold">
-              {loan.title}
-            </h2>
+            <h2 className="font-semibold">{loan.title}</h2>
             <CardDescription className="text-base">{loan.bank}</CardDescription>
           </div>
-          <Badge
-            variant={isPaidOff ? "default" : "destructive"}
-            className={`text-sm font-medium px-3 py-1 ${
-              isPaidOff ? "bg-green-100 text-green-800" : ""
-            }`}
-          >
-            {isPaidOff ? "Paid Off" : `₹${remaining.toLocaleString()} due`}
-          </Badge>
+
+          {/* Right section (badge + progress) */}
+          <div className="flex flex-col items-start sm:items-end gap-2 sm:min-w-[180px] w-full sm:w-auto">
+            <Badge
+              variant={isPaidOff ? "default" : "destructive"}
+              className={`text-sm font-medium px-3 py-1 ${
+                isPaidOff ? "bg-green-100 text-green-800" : ""
+              }`}
+            >
+              {isPaidOff ? "Paid Off" : `₹${remaining.toLocaleString()} due`}
+            </Badge>
+
+            {/* Progress bar */}
+            <div className="w-full sm:w-40 h-2 bg-muted rounded-full overflow-hidden mt-1">
+              <div
+                className={`h-full transition-all duration-500 ${
+                  isPaidOff ? "bg-green-600" : "bg-primary"
+                }`}
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+
+            <p className="text-xs text-muted-foreground sm:text-right w-full sm:w-auto">
+              {progress.toFixed(1)}% repaid
+            </p>
+          </div>
         </div>
       </CardHeader>
 
